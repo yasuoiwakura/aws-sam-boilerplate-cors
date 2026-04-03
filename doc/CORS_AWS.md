@@ -75,11 +75,12 @@ Define the OPTIONS method explicitly in the OpenAPI spec with a MOCK integration
 |------|------|
 | Full control over every method | Complex, verbose |
 | OPTIONS mock integration defined explicitly | **Still doesn't cover gateway errors** |
-| Lambda stays clean | Hard to maintain |
+| OPTIONS response is API Gateway managed | **Lambda must still return CORS headers on actual responses** (GET/POST/etc.) when using Lambda proxy integration |
+| | Hard to maintain |
 
 ---
 
-## Strategy 4: `Cors` + `GatewayResponses` (Recommended for REST API)
+## Strategy 4: `Cors` + `GatewayResponses` (REST API with error coverage)
 
 ```yaml
 Api:
@@ -105,15 +106,26 @@ Api:
 
 | Pros | Cons |
 |------|------|
-| **Covers gateway errors** (auth failures, throttling, etc.) | Lambda must still return CORS headers on success (for REST API with proxy integration) |
-| Browser sees real error instead of CORS error | |
-| Works with any Lambda function | |
+| **Covers gateway errors** (auth failures, throttling, etc.) | **Lambda MUST return CORS headers on success** — with Lambda proxy integration there is no integration response, so API Gateway cannot inject headers into Lambda responses ([AWS docs](https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-cors.html#apigateway-enable-cors-proxy)) |
+| Browser sees real error instead of CORS error | `Cors` property only creates OPTIONS method, not headers on GET/POST/etc. |
+| Works with any Lambda function | Not truly Lambda-independent |
 
 ### Why GatewayResponses matter
 
 If API Gateway returns a 4xx or 5xx error (missing auth, throttling, WAF blocking, malformed request), it **does not include CORS headers** by default. The browser shows a CORS error instead of the actual error, making debugging impossible.
 
 `GatewayResponses` injects CORS headers into all error responses from API Gateway itself.
+
+### Why Lambda still needs CORS headers
+
+With **Lambda proxy integration** (SAM's default), API Gateway passes the Lambda response directly to the client without modification. The [AWS documentation](https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-cors.html#apigateway-enable-cors-proxy) states:
+
+> *"For a Lambda proxy integration or HTTP proxy integration, your backend is responsible for returning the `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods`, and `Access-Control-Allow-Headers` headers, because a proxy integration doesn't return an integration response."*
+
+This means:
+- `Cors` → handles OPTIONS preflight only
+- `GatewayResponses` → handles API Gateway errors only
+- **Lambda** → must return CORS headers on every success response
 
 ---
 
@@ -187,12 +199,14 @@ curl -v -X GET \
 
 ## Key Takeaway
 
-| API Type | CORS Effort | Lambda CORS Headers Needed? | Gateway Errors Covered? |
-|----------|-------------|----------------------------|------------------------|
-| REST API with `Cors` only | Low | Yes | No |
-| REST API with `Cors` + `GatewayResponses` | Medium | Yes | Yes |
-| REST API with OpenAPI `DefinitionBody` | High | No (OPTIONS only) | No |
-| HTTP API | None | No | Yes |
+| API Type | OPTIONS Preflight | Lambda CORS Headers on Success? | Gateway Errors Covered? |
+|----------|-------------------|--------------------------------|------------------------|
+| REST API with `Cors` only | Yes (auto-created) | **Yes** — proxy integration passes Lambda response through | No |
+| REST API with `Cors` + `GatewayResponses` | Yes (auto-created) | **Yes** — proxy integration passes Lambda response through | Yes |
+| REST API with OpenAPI `DefinitionBody` | Yes (manual mock) | **Yes** — proxy integration passes Lambda response through | No |
+| REST API with non-proxy integration | Yes | No (API Gateway injects headers) | Configurable via integration responses |
+| HTTP API | Yes (automatic) | **No** — API Gateway handles CORS entirely | Yes |
 
-For REST API: use **Strategy 4** (`Cors` + `GatewayResponses`).
-For simplest setup: use **HTTP API** (Strategy 5).
+**For REST API with Lambda proxy integration:** there is **no fully Lambda-independent CORS solution**. Lambda must return CORS headers on success. `GatewayResponses` only covers API Gateway-level errors.
+
+**For truly Lambda-independent CORS:** use **HTTP API** (Strategy 5) or REST API with **non-proxy integration** (requires manual response mapping in API Gateway).
