@@ -15,9 +15,9 @@ Resources:
         Api:
           Type: Api
           Properties:
-            Path: /{proxy+}
-            Method: ANY
             RestApiId: !Ref Api
+            Path: /
+            Method: GET
 
   Api:
     Type: AWS::Serverless::Api
@@ -26,8 +26,13 @@ Resources:
       StageName: Prod
       Cors:
         AllowOrigin: "*"
-        AllowMethods: GET,POST,PUT,DELETE,OPTIONS
         AllowHeaders: Content-Type,Authorization
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
 
 Outputs:
   ApiUrl:
