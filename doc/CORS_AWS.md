@@ -4,6 +4,22 @@
 
 When a frontend hosted on a different origin calls an API Gateway endpoint, the browser enforces CORS (Cross-Origin Resource Sharing). If CORS headers are missing, the request is blocked — even if the backend works correctly.
 
+## When Does CORS Matter?
+
+CORS only applies when frontend and backend are on different origins (domain, port, or protocol).
+
+### CORS applies
+- **Local file** (`file://frontend.htm`) — browsers send no `Origin` header, CORS always fails
+- **Local dev** — frontend on `localhost:8080`, API on `*.execute-api.amazonaws.com`
+- **Production** — CloudFront CDN (`app.example.com`) → API Gateway (`*.execute-api.amazonaws.com`)
+
+### CORS does NOT apply
+- **Full-stack local** — frontend and backend on same origin
+- **Docker stack** — single domain, reverse proxy routes both
+- **Private cloud** — reverse proxy handles CORS and domain unification
+
+In the last three cases, the browser sees a single origin and CORS is never triggered.
+
 ## How CORS Works on API Gateway
 
 There are **two types** of CORS requests:
