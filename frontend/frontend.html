@@ -8,10 +8,11 @@
 <body>
     <h1>SAM Boilerplate with API Gateway CORS</h1>
     <div id="response"></div>
+    <script src="config.js"></script>
     <script>
         async function callApi() {
             try {
-                const res = await fetch('https://YOUR_API_ID.execute-api.YOUR_REGION.amazonaws.com/Prod/', {
+                const res = await fetch(API_URL, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
