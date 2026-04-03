@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAM Boilerplate CORS</title>
+</head>
+<body>
+    <h1>SAM Boilerplate with API Gateway CORS</h1>
+    <div id="response"></div>
+    <script>
+        const API_URL = 'https://YOUR_API_ID.execute-api.YOUR_REGION.amazonaws.com/Prod/';
+
+        async function callApi() {
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await res.text();
+                document.getElementById('response').textContent = 'Response: ' + data;
+            } catch (err) {
+                document.getElementById('response').textContent = 'Error: ' + err.message;
+            }
+        }
+        callApi();
+    </script>
+</body>
+</html>
