@@ -6,7 +6,7 @@ Resources:
   ApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Runtime: python3.12
+      Runtime: python3.14
       Handler: app.lambda_handler
       CodeUri: backend/
       MemorySize: 128
