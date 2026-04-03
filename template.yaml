@@ -1,0 +1,52 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Transform": "AWS::Serverless-2016-10-31",
+    "Description": "SAM boilerplate with CORS handled by API Gateway",
+    "Resources": {
+        "ApiFunction": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+                "Runtime": "python3.14",
+                "Handler": "app.lambda_handler",
+                "CodeUri": "backend/",
+                "MemorySize": 128,
+                "Timeout": 30,
+                "Events": {
+                    "Api": {
+                        "Type": "Api",
+                        "Properties": {
+                            "Path": "/{proxy+}",
+                            "Method": "ANY",
+                            "RestApiId": "!Ref Api"
+                        }
+                    },
+                    "ApiRoot": {
+                        "Type": "Api",
+                        "Properties": {
+                            "Path": "/",
+                            "Method": "GET",
+                            "RestApiId": "!Ref Api"
+                        }
+                    }
+                }
+            }
+        },
+        "Api": {
+            "Type": "AWS::Serverless::Api",
+            "Properties": {
+                "Name": "api",
+                "Cors": {
+                    "AllowOrigin": "*",
+                    "AllowMethods": "GET,POST,PUT,DELETE,OPTIONS",
+                    "AllowHeaders": "Content-Type,Authorization"
+                }
+            }
+        }
+    },
+    "Outputs": {
+        "ApiUrl": {
+            "Description": "API endpoint URL",
+            "Value": "!Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod'"
+        }
+    }
+}
