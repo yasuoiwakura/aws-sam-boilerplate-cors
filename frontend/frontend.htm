@@ -49,11 +49,18 @@
         .controls { margin-bottom: 1.5rem; }
         .controls button + button { margin-left: 0.5rem; }
         .note {
-            background: #fffbe6;
             border-left: 4px solid #faad14;
             padding: 0.75rem 1rem;
             margin-bottom: 1.5rem;
             font-size: 0.9rem;
+        }
+        .note.ok {
+            background: #f6ffed;
+            border-left-color: #52c41a;
+        }
+        .note.err {
+            background: #fff2f0;
+            border-left-color: #ff4d4f;
         }
         .note strong { display: block; margin-bottom: 0.25rem; }
     </style>
@@ -62,13 +69,7 @@
     <h1>SAM Boilerplate — HTTP API CORS</h1>
     <p class="subtitle">CORS handled 100% by API Gateway. Lambda returns zero CORS headers.</p>
 
-    <div class="note">
-        <strong>Important</strong>
-        This page must be served over HTTP(S), not <code>file://</code>.
-        Browsers do not send the <code>Origin</code> header for file:// requests,
-        so API Gateway cannot return CORS headers.
-        Use <code>python -m http.server 8080</code> in this directory and open
-        <code>http://localhost:8080/frontend.htm</code>.
+    <div class="note" id="protocolNote">
     </div>
 
     <div class="controls">
@@ -145,6 +146,24 @@
 
     <script>
         const API_URL = 'https://dl2g2wvie1.execute-api.us-east-1.amazonaws.com/Prod/';
+
+        (function checkProtocol() {
+            const note = document.getElementById('protocolNote');
+            const protocol = window.location.protocol;
+            if (protocol === 'file:') {
+                note.className = 'note err';
+                note.innerHTML = '<strong>Not OK — file:// protocol detected</strong>' +
+                    'Browsers do not send the <code>Origin</code> header for file:// requests, ' +
+                    'so API Gateway cannot return CORS headers. All tests will fail.<br>' +
+                    'Run <code>python -m http.server 8080</code> in this directory and open ' +
+                    '<code>http://localhost:8080/frontend.htm</code>.';
+            } else {
+                note.className = 'note ok';
+                note.innerHTML = '<strong>OK — ' + protocol + ' protocol detected</strong>' +
+                    'This page is served over HTTP(S). The <code>Origin</code> header will be sent. ' +
+                    'CORS tests will work correctly.';
+            }
+        })();
 
         async function runTest(row) {
             const path = row.dataset.path;
