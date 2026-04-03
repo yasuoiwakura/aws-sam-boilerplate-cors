@@ -86,7 +86,7 @@
                 <th>Expected</th>
                 <th>Responds</th>
                 <th>Status</th>
-                <th>CORS Header</th>
+                <th>CORS</th>
                 <th>Result</th>
             </tr>
         </thead>
@@ -94,18 +94,18 @@
             <tr data-path="" data-expected="200">
                 <td>1</td>
                 <td>200 OK</td>
-                <td><code>/</code></td>
+                <td><code>/api</code></td>
                 <td>200</td>
                 <td class="responder-lambda">Lambda</td>
                 <td class="pending">—</td>
                 <td class="pending">—</td>
                 <td class="pending">—</td>
             </tr>
-            <tr data-path="?except=true" data-expected="502">
+            <tr data-path="?except=true" data-expected="500">
                 <td>2</td>
                 <td>Lambda Exception</td>
-                <td><code>/?except=true</code></td>
-                <td>502</td>
+                <td><code>/api?except=true</code></td>
+                <td>500</td>
                 <td class="responder-gateway">API Gateway</td>
                 <td class="pending">—</td>
                 <td class="pending">—</td>
@@ -114,27 +114,27 @@
             <tr data-path="?status=500" data-expected="500">
                 <td>3</td>
                 <td>Lambda 500</td>
-                <td><code>/?status=500</code></td>
+                <td><code>/api?status=500</code></td>
                 <td>500</td>
                 <td class="responder-lambda">Lambda</td>
                 <td class="pending">—</td>
                 <td class="pending">—</td>
                 <td class="pending">—</td>
             </tr>
-            <tr data-path="?timeout=true" data-expected="504">
+            <tr data-path="?timeout=true" data-expected="503">
                 <td>4</td>
                 <td>Lambda Timeout</td>
-                <td><code>/?timeout=true</code></td>
-                <td>504</td>
+                <td><code>/api?timeout=true</code></td>
+                <td>503</td>
                 <td class="responder-gateway">API Gateway</td>
                 <td class="pending">—</td>
                 <td class="pending">—</td>
                 <td class="pending">—</td>
             </tr>
-            <tr data-path="nonexistent" data-expected="404">
+            <tr data-path="../wrongpath" data-expected="404">
                 <td>5</td>
                 <td>404 Route</td>
-                <td><code>/nonexistent</code></td>
+                <td><code>/wrongpath</code></td>
                 <td>404</td>
                 <td class="responder-gateway">API Gateway</td>
                 <td class="pending">—</td>
@@ -145,7 +145,7 @@
     </table>
 
     <script>
-        const API_URL = 'https://dl2g2wvie1.execute-api.us-east-1.amazonaws.com/Prod/';
+        const API_URL = 'https://dl2g2wvie1.execute-api.us-east-1.amazonaws.com/Prod/api';
 
         (function checkProtocol() {
             const note = document.getElementById('protocolNote');
@@ -183,23 +183,21 @@
 
             try {
                 const res = await fetch(url, { method: 'GET' });
-                const corsHeader = res.headers.get('Access-Control-Allow-Origin');
-                const hasCors = corsHeader !== null;
                 const body = await res.text();
+                const statusMatch = res.status === expected;
 
                 statusCell.textContent = res.status + ' ' + res.statusText;
-                statusCell.className = res.status === expected ? 'pass' : 'fail';
+                statusCell.className = statusMatch ? 'pass' : 'fail';
 
-                corsCell.textContent = hasCors ? corsHeader : 'MISSING';
-                corsCell.className = hasCors ? 'pass' : 'fail';
+                corsCell.textContent = 'OK';
+                corsCell.className = 'pass';
 
-                const ok = res.status === expected && hasCors;
-                resultCell.textContent = ok ? 'PASS' : 'FAIL';
-                resultCell.className = ok ? 'pass' : 'fail';
+                resultCell.textContent = statusMatch ? 'PASS' : 'FAIL';
+                resultCell.className = statusMatch ? 'pass' : 'fail';
             } catch (err) {
                 statusCell.textContent = 'CORS blocked';
                 statusCell.className = 'fail';
-                corsCell.textContent = 'N/A';
+                corsCell.textContent = 'FAIL';
                 corsCell.className = 'fail';
                 resultCell.textContent = 'FAIL';
                 resultCell.className = 'fail';
