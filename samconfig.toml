@@ -1,0 +1,10 @@
+version = 0.1
+
+[default.deploy.parameters]
+confirm_changeset = false
+stack_name = "cors-test"
+resolve_s3 = true
+capabilities = ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM"]
+
+[default.global.parameters]
+region = "us-east-1"
