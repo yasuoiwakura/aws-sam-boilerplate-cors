@@ -30,6 +30,7 @@
         .responder-gateway { color: #cc6600; font-weight: 600; }
         .pass { color: #0a7; font-weight: 700; }
         .fail { color: #c00; font-weight: 700; }
+        .warn { color: #d48806; font-weight: 700; }
         .pending { color: #999; }
         code {
             background: #f0f0f0;
@@ -63,6 +64,14 @@
             border-left-color: #ff4d4f;
         }
         .note strong { display: block; margin-bottom: 0.25rem; }
+        .limitation {
+            background: #fffbe6;
+            border-left: 4px solid #faad14;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
     </style>
 </head>
 <body>
@@ -121,21 +130,21 @@
                 <td class="pending">—</td>
                 <td class="pending">—</td>
             </tr>
-            <tr data-path="?timeout=true" data-expected="503">
+            <tr data-path="../wrongpath" data-expected="404" data-expected-cors="false">
                 <td>4</td>
-                <td>Lambda Timeout</td>
-                <td><code>/api?timeout=true</code></td>
-                <td>503</td>
+                <td>404 Route</td>
+                <td><code>/wrongpath</code></td>
+                <td>404</td>
                 <td class="responder-gateway">API Gateway</td>
                 <td class="pending">—</td>
                 <td class="pending">—</td>
                 <td class="pending">—</td>
             </tr>
-            <tr data-path="../wrongpath" data-expected="404">
+            <tr data-path="?timeout=true" data-expected="503">
                 <td>5</td>
-                <td>404 Route</td>
-                <td><code>/wrongpath</code></td>
-                <td>404</td>
+                <td>Lambda Timeout</td>
+                <td><code>/api?timeout=true</code></td>
+                <td>503</td>
                 <td class="responder-gateway">API Gateway</td>
                 <td class="pending">—</td>
                 <td class="pending">—</td>
@@ -145,7 +154,8 @@
     </table>
 
     <script>
-        const API_URL = 'https://dl2g2wvie1.execute-api.us-east-1.amazonaws.com/Prod/api';
+        const BASE_URL = 'https://dl2g2wvie1.execute-api.us-east-1.amazonaws.com/Prod';
+        const API_URL = BASE_URL + '/api';
 
         (function checkProtocol() {
             const note = document.getElementById('protocolNote');
@@ -165,14 +175,18 @@
             }
         })();
 
-        async function runTest(row) {
+        async function runTest(row, index, total) {
             const path = row.dataset.path;
             const expected = parseInt(row.dataset.expected, 10);
-            const url = API_URL + path;
+            const expectCors = row.dataset.expectedCors !== 'false';
+            const url = (path.startsWith('..') ? BASE_URL : API_URL) + path;
             const cells = row.querySelectorAll('td');
             const statusCell = cells[5];
             const corsCell = cells[6];
             const resultCell = cells[7];
+
+            const testName = cells[1].textContent;
+            const responder = cells[4].textContent;
 
             statusCell.textContent = '...';
             statusCell.className = 'pending';
@@ -180,6 +194,8 @@
             corsCell.className = 'pending';
             resultCell.textContent = '...';
             resultCell.className = 'pending';
+
+            console.log(`[${index}/${total}] ${testName} — expecting ${expected} from ${responder}...`);
 
             try {
                 const res = await fetch(url, { method: 'GET' });
@@ -192,21 +208,44 @@
                 corsCell.textContent = 'OK';
                 corsCell.className = 'pass';
 
-                resultCell.textContent = statusMatch ? 'PASS' : 'FAIL';
-                resultCell.className = statusMatch ? 'pass' : 'fail';
+                if (!expectCors) {
+                    resultCell.textContent = 'EXPECTED FAIL';
+                    resultCell.className = 'warn';
+                    console.log(`      EXPECTED FAIL — no CORS on 404 (HTTP API limitation)`);
+                } else if (statusMatch) {
+                    resultCell.textContent = 'PASS';
+                    resultCell.className = 'pass';
+                    console.log(`      PASS — ${res.status}, CORS OK`);
+                } else {
+                    resultCell.textContent = 'FAIL';
+                    resultCell.className = 'fail';
+                    console.log(`      FAIL — expected ${expected}, got ${res.status}`);
+                }
             } catch (err) {
                 statusCell.textContent = 'CORS blocked';
                 statusCell.className = 'fail';
                 corsCell.textContent = 'FAIL';
                 corsCell.className = 'fail';
-                resultCell.textContent = 'FAIL';
-                resultCell.className = 'fail';
+
+                if (!expectCors) {
+                    resultCell.textContent = 'EXPECTED FAIL';
+                    resultCell.className = 'warn';
+                    console.log(`      EXPECTED FAIL — no CORS on 404 (HTTP API limitation)`);
+                } else {
+                    resultCell.textContent = 'FAIL';
+                    resultCell.className = 'fail';
+                    console.log(`      FAIL — CORS blocked`);
+                }
             }
         }
 
         async function runAll() {
-            const rows = document.querySelectorAll('#testTable tbody tr');
-            await Promise.all(Array.from(rows).map(runTest));
+            console.log('=== CORS Test Suite ===');
+            const rows = Array.from(document.querySelectorAll('#testTable tbody tr'));
+            for (let i = 0; i < rows.length; i++) {
+                await runTest(rows[i], i + 1, rows.length);
+            }
+            console.log('=== All tests complete ===');
         }
 
         function resetTable() {
