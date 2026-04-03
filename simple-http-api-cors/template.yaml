@@ -18,19 +18,7 @@ Resources:
             ApiId: !Ref HttpApi
             Method: ANY
             Path: /api
-            #
-            # WARNING: Do NOT change this to /{proxy+}.
-            #
-            # A catch-all route /{proxy+} forwards EVERY request to Lambda,
-            # including typos and wrong paths. This means:
-            #   1. API Gateway can never return a 404 for unknown routes
-            #   2. Lambda must handle routing logic itself
-            #   3. You lose the ability to test API Gateway error responses (404, 405)
-            #
-            # If you need multiple endpoints, define them explicitly as separate
-            # HttpApi events, or use a custom domain + stage mapping.
-            #
-            # Path: /{proxy+}
+            # WARNING: /{proxy+} catches everything — no 404s from API Gateway, Lambda handles routing, loses error response testing — Path: /{proxy+}
 
   HttpApi:
     Type: AWS::Serverless::HttpApi
